@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fastlane.lanes">
+    
+    
+    
+      
+      <testcase classname="fastlane.lanes" name="0: xcversion" time="0.069471">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="1: clear_derived_data" time="3.654877">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="2: spm" time="1.615153">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="3: smart_create_xcframework" time="26.642972">
+        
+      </testcase>
+    
+  </testsuite>
+</testsuites>

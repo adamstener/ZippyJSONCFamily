@@ -1,0 +1,74 @@
+# frozen_string_literal: true
+
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+
+# Global config for all lanes
+@global = {
+  library: 'ZippyJSONCFamily'
+}
+
+before_all do |lane, options|
+  # Fix for intermittent timeouts (MOBI-1972)
+  # `xcodebuild -showBuildSettings timed out after 4 retries`
+  ENV['FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT'] = '180'
+
+  @global[:release_version] = ENV['RELEASE_VERSION'].to_s.scan(/(\d+\.)(\d+\.)(\*|\d+)(-[^+\s]+)?(\+\S+)?/).join
+  @global[:build_number] = ENV['BUILD_NUMBER'].to_s
+  @global[:xcode_version] = ENV['XCODE_VERSION'].to_s
+  [].tap do |errors|
+    errors << "- Please set ENV['RELEASE_VERSION'] to the desired release version" if @global[:release_version].empty?
+    errors << "- Please set ENV['BUILD_NUMBER'] to the desired build number" if @global[:build_number].empty?
+    errors << "- Please set ENV['XCODE_VERSION'] to the desired Xcode version" if @global[:xcode_version].empty?
+    UI.user_error!("Missing environment settings:\n#{errors.join("\n")}") unless errors.empty?
+  end
+
+  xcversion(version: @global[:xcode_version])
+  clear_derived_data
+end
+
+error do |lane, exception, options|
+  puts "⚠️  #{lane}"
+  puts exception
+  puts options
+end
+
+desc "Deploy the #{@global[:library]} library (DEBUG/RELEASE)"
+lane :deploy_zippy_c_family do |options|
+  FastlaneCore::UI.important("▸ Deploying the #{@global[:library]} library (DEBUG/RELEASE)")
+
+  # Generate xcodeproj to run tests against
+  spm(command: 'generate-xcodeproj')
+
+
+  # Release build
+  release_zip = File.expand_path("../build_artifacts/#{@global[:library]}-Release.xcframework.zip")
+  smart_create_xcframework(
+    configuration: 'Release',
+    enable_library_evolution: false,
+    name: @global[:library],
+    platforms: 'iOS,tvOS,macOS',
+    project: "#{@global[:library]}.xcodeproj",
+    scheme: "#{@global[:library]}-Package",
+    zip_destination: release_zip
+  )
+end
+
+
+# Returns contents for an empty package manifest, to prevent Xcode from displaying the parent folder
+def empty_package(dir)
+  <<~PACKAGE
+    // swift-tools-version:5.3
+
+    import PackageDescription
+
+    // This package exists to prevent Xcode from displaying the #{dir} folder.
+
+    let package = Package(name: "#{dir}", products: [], targets: [])
+  PACKAGE
+end
